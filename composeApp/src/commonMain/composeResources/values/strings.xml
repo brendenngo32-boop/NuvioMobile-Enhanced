@@ -1,4 +1,5 @@
 <resources>
+    <string name="compose_player_no_compatible_subtitle_addons">No enabled subtitle addon supports this title. Add or enable one in Addons, then retry.</string>
     <string name="theme_gold">Gold</string>
     <string name="theme_jade">Jade</string>
     <string name="theme_rose_gold">Rose Gold</string>
