@@ -15,6 +15,36 @@ import kotlin.test.assertTrue
 class PlayerScreenRuntimeStateTest {
 
     @Test
+    fun subtitleResultsAndLoadingUpdateWithoutOpeningControls() {
+        val runtime = PlayerScreenRuntime(testPlayerScreenArgs())
+        val results = derivedStateOf { runtime.visibleAddonSubtitles }
+        val loading = derivedStateOf { runtime.isLoadingAddonSubtitles }
+        assertTrue(results.value.isEmpty())
+        assertFalse(loading.value)
+        val subtitle = AddonSubtitle(
+            id = "en", url = "https://example.com/en.srt", language = "en", display = "English",
+        )
+        runtime.isLoadingAddonSubtitles = true
+        assertTrue(loading.value)
+        runtime.addonSubtitles = listOf(subtitle)
+        assertEquals(listOf(subtitle), results.value)
+        runtime.isLoadingAddonSubtitles = false
+        assertFalse(loading.value)
+        assertFalse(runtime.showSubtitleModal)
+    }
+
+    @Test
+    fun addonManifestArrivalInvalidatesObserversBeforeControlsOpen() {
+        val runtime = PlayerScreenRuntime(testPlayerScreenArgs())
+        val addons = derivedStateOf { runtime.addonsUiState.addons }
+        assertTrue(addons.value.isEmpty())
+        val addon = com.nuvio.app.features.addons.ManagedAddon("https://example.com/manifest.json")
+        runtime.addonsUiState = runtime.addonsUiState.copy(addons = listOf(addon))
+        assertEquals(listOf(addon), addons.value)
+        assertFalse(runtime.showSubtitleModal)
+    }
+
+    @Test
     fun controlsStartHidden() {
         assertFalse(PlayerScreenRuntime(testPlayerScreenArgs()).controlsVisible)
     }
