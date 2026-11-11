@@ -560,6 +560,17 @@ kotlin {
             implementation(libs.supabase.realtime)
             implementation(libs.reorderable)
         }
+        // Keep the focused subtitle check independent of stale upstream UI tests.
+        // Normal test runs retain every source file.
+        if (providers.gradleProperty("nuvio.subtitleRegressionOnly").orNull == "true") {
+            getByName("commonTest").kotlin.setIncludes(setOf(
+                "**/SubtitleFetchRetryTest.kt",
+                "**/SubtitleRequestExtrasTest.kt",
+                "**/PlayerScreenRuntimeStateTest.kt",
+                "**/SubtitleSelectionModelTest.kt",
+            ))
+            getByName("androidHostTest").kotlin.exclude("**/*")
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${libs.versions.kotlinx.coroutines.get()}")
