@@ -3,6 +3,10 @@ name: Build Test IPA
 on:
   workflow_dispatch:
     inputs:
+      build_ipa:
+        description: Build the IPA as well as running subtitle tests
+        type: boolean
+        default: true
       configuration:
         description: Production-optimized or fast validation build
         required: true
@@ -26,7 +30,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-test-build-${{ github.ref }}
+  group: ios-test-build-${{ github.ref }}-${{ inputs.build_ipa }}
   cancel-in-progress: true
 
 jobs:
@@ -44,7 +48,7 @@ jobs:
       - name: Run subtitle tests
         run: |
           touch local.properties
-          ./gradlew :composeApp:testAndroidHostTest --tests '*SubtitleFetchRetryTest' --tests '*SubtitleRequestExtrasTest' --tests '*PlayerScreenRuntimeStateTest' --tests '*SubtitleSelectionModelTest' -Pnuvio.ios.distribution=appstore --stacktrace
+          ./gradlew :composeApp:testAndroidHostTest --tests '*SubtitleFetchRetryTest' --tests '*SubtitleRequestExtrasTest' --tests '*PlayerScreenRuntimeStateTest' --tests '*SubtitleSelectionModelTest' -Pnuvio.ios.distribution=appstore -Pnuvio.subtitleRegressionOnly=true --stacktrace
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -54,6 +58,7 @@ jobs:
           retention-days: 7
 
   build:
+    if: inputs.build_ipa
     name: Build unsigned full ${{ inputs.configuration }} IPA
     runs-on: xcode-27
     timeout-minutes: ${{ inputs.configuration == 'Release' && 180 || 30 }}
