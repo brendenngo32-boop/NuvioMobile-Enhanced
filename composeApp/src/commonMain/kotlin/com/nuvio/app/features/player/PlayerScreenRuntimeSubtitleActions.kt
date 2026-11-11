@@ -2,18 +2,18 @@ package com.nuvio.app.features.player
 
 import com.nuvio.app.core.i18n.localizedNoSubtitleLinesFound
 import com.nuvio.app.core.i18n.localizedSubtitleLinesLoadError
+import com.nuvio.app.core.network.NetworkStatusRepository
 import com.nuvio.app.features.addons.httpGetTextWithHeaders
 import com.nuvio.app.features.autosync.AutoSyncPlayerController
 import com.nuvio.app.features.streams.StreamLinkCacheRepository
 import kotlinx.coroutines.launch
 
-internal fun PlayerScreenRuntime.fetchAddonSubtitlesForActiveItem() {
+internal fun PlayerScreenRuntime.fetchAddonSubtitlesForActiveItem(manual: Boolean = false) {
     if (activeSourceUrl.startsWith("file:") && externalSubtitles.isNotEmpty()) {
         SubtitleRepository.clear()
         return
     }
-    // Without a network the addon lookup can only hang; keep the local state untouched.
-    if (isNetworkOffline()) return
+    if (!shouldFetchAddonSubtitles(NetworkStatusRepository.uiState.value.condition, manual)) return
     val type = activeAddonSubtitleType.takeIf { it.isNotBlank() } ?: return
     val videoId = activeVideoId?.takeIf { it.isNotBlank() } ?: return
     val extras = activeSubtitleExtras
@@ -29,6 +29,7 @@ internal fun PlayerScreenRuntime.fetchAddonSubtitlesForActiveItem() {
             type = type,
             videoId = videoId,
             extras = extras,
+            forceRefresh = manual,
             sourceUrl = hashableUrl,
             sourceHeaders = if (p2pResolvedSourceUrl != null) emptyMap() else activeSourceHeaders,
             onExtrasUpdated = { enriched ->
@@ -37,7 +38,7 @@ internal fun PlayerScreenRuntime.fetchAddonSubtitlesForActiveItem() {
             },
         )
     } else {
-        SubtitleRepository.fetchAddonSubtitles(type, videoId, extras)
+        SubtitleRepository.fetchAddonSubtitles(type, videoId, extras, forceRefresh = manual)
     }
 }
 

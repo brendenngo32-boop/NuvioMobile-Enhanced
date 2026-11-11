@@ -332,8 +332,8 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
         if (activeTorrentInfoHash != null && p2pResolvedSourceUrl == null) return@LaunchedEffect
         val effectiveFetchKey = if (p2pResolvedSourceUrl != null) "$fetchKey|p2p" else fetchKey
         if (autoFetchedAddonSubtitlesForKey == effectiveFetchKey) return@LaunchedEffect
-        // Offline: leave the key unset so the fetch can run once connectivity returns.
-        if (isNetworkOffline()) return@LaunchedEffect
+        // A Nuvio backend outage does not imply that subtitle addons are offline.
+        if (!shouldFetchAddonSubtitles(networkCondition, manual = false)) return@LaunchedEffect
         autoFetchedAddonSubtitlesForKey = effectiveFetchKey
         fetchAddonSubtitlesForActiveItem()
     }

@@ -1082,7 +1082,7 @@ private fun PlayerScreenRuntime.RenderPlayerModals() {
             attachSelectedAddonSubtitleWithAutoSync(addon.url) // AutoSync hook
             if (hasBurnedInServerSubtitle) clearServerSubtitleTrack()
         },
-        onFetchAddonSubtitles = { fetchAddonSubtitlesForActiveItem() },
+        onFetchAddonSubtitles = { fetchAddonSubtitlesForActiveItem(manual = true) },
         onSubtitleStyleChanged = PlayerSettingsRepository::setSubtitleStyle,
         onSubtitleDelayChanged = { delayMs -> setSubtitleDelay(delayMs) },
         onSubtitleDelayReset = { setSubtitleDelay(0) },

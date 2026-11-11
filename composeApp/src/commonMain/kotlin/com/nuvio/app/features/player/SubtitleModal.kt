@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.nuvio.app.features.autosync.AutoSyncedChip
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,6 +89,7 @@ fun SubtitleModal(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val fetchError by SubtitleRepository.error.collectAsStateWithLifecycle()
     val effectiveSelectedAddonSubtitle = selectedAddonSubtitle
         ?: addonSubtitles.findSelectedAddon(selectedAddonSubtitleId)
     val playbackLanguageKey = selectedSubtitleLanguageKey(
@@ -127,6 +129,7 @@ fun SubtitleModal(
         )
     }
     var pendingOptionId by remember(visible) { mutableStateOf<String?>(playbackOptionId) }
+    var hasBrowsedLanguage by remember(visible) { mutableStateOf(false) }
     val options = remember(activeLanguageKey, subtitleStructureKey, addonStructureKey) {
         buildSubtitleSelectionOptions(activeLanguageKey, subtitleTracks, addonSubtitles)
     }
@@ -150,7 +153,8 @@ fun SubtitleModal(
         }
     }
 
-    LaunchedEffect(languageItems) {
+    LaunchedEffect(languageItems, isLoadingAddonSubtitles) {
+        if (isLoadingAddonSubtitles) return@LaunchedEffect
         if (languageItems.none { it.key == activeLanguageKey }) {
             activeLanguageKey = playbackLanguageKey.takeIf { key -> languageItems.any { it.key == key } }
                 ?: languageItems.firstOrNull { it.key != SubtitleOffLanguageKey }?.key
@@ -159,6 +163,9 @@ fun SubtitleModal(
     }
 
     LaunchedEffect(playbackLanguageKey, playbackOptionId) {
+        // Track discovery / automatic selection must not move the language rail
+        // away from the options the user is currently trying to choose.
+        if (hasBrowsedLanguage) return@LaunchedEffect
         if (playbackOptionId != null || playbackLanguageKey == SubtitleOffLanguageKey) {
             activeLanguageKey = playbackLanguageKey
             pendingOptionId = playbackOptionId
@@ -205,6 +212,7 @@ fun SubtitleModal(
                                     item = item,
                                     selected = item.key == activeLanguageKey,
                                     onClick = {
+                                        hasBrowsedLanguage = true
                                         activeLanguageKey = item.key
                                         val availableOptions = buildSubtitleSelectionOptions(
                                             item.key,
@@ -247,6 +255,9 @@ fun SubtitleModal(
                                     }
 
                                     SubtitleOptionsRailEmptyContent.FETCH -> {
+                                        fetchError?.let { message ->
+                                            SubtitleRailEmptyState(text = message)
+                                        }
                                         SubtitleRailEmptyState(
                                             text = stringResource(Res.string.compose_player_fetch_subtitles),
                                             onClick = onFetchAddonSubtitles,

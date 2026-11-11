@@ -110,13 +110,15 @@ internal fun addonSubtitleRequests(
 
 internal suspend fun loadAddonSubtitles(
     requests: List<SubtitleAddonRequest>,
+    forceRefresh: Boolean = false,
+    fetchResponse: suspend (String, Boolean) -> String = ::fetchAddonResponseText,
     onLoaded: (SubtitleAddonRequest, List<AddonSubtitle>) -> Unit = { _, _ -> },
 ): List<AddonSubtitle> = supervisorScope {
     requests.map { request ->
         async {
             val subtitles = try {
                 withTimeoutOrNull(10_000L) {
-                    parseAddonSubtitles(fetchAddonResponseText(request.url), request)
+                    parseAddonSubtitles(fetchResponse(request.url, forceRefresh), request)
                 }.orEmpty()
             } catch (error: Exception) {
                 if (error is CancellationException) throw error

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.compose_player_no_subtitles_found
+import nuvio.composeapp.generated.resources.compose_player_no_compatible_subtitle_addons
 import org.jetbrains.compose.resources.getString
 
 object SubtitleRepository {
@@ -35,11 +36,12 @@ object SubtitleRepository {
         type: String,
         videoId: String,
         extras: SubtitleRequestExtras? = null,
+        forceRefresh: Boolean = false,
     ) {
         activeFetchJob?.cancel()
         _loadingProgress.value = null
         activeFetchJob = scope.launch {
-            executeSubtitleFetch(type, videoId, extras)
+            executeSubtitleFetch(type, videoId, extras, forceRefresh)
         }
     }
 
@@ -53,6 +55,7 @@ object SubtitleRepository {
         extras: SubtitleRequestExtras?,
         sourceUrl: String,
         sourceHeaders: Map<String, String>,
+        forceRefresh: Boolean = false,
         onExtrasUpdated: (SubtitleRequestExtras) -> Unit,
     ) {
         activeFetchJob?.cancel()
@@ -79,7 +82,7 @@ object SubtitleRepository {
                 extras
             }
 
-            executeSubtitleLoad(type, videoId, enrichedExtras)
+            executeSubtitleLoad(type, videoId, enrichedExtras, forceRefresh)
         }
     }
 
@@ -95,26 +98,29 @@ object SubtitleRepository {
         type: String,
         videoId: String,
         extras: SubtitleRequestExtras?,
+        forceRefresh: Boolean,
     ) {
         _isLoading.value = true
         _error.value = null
         _addonSubtitles.value = emptyList()
-        executeSubtitleLoad(type, videoId, extras)
+        executeSubtitleLoad(type, videoId, extras, forceRefresh)
     }
 
     private suspend fun executeSubtitleLoad(
         type: String,
         videoId: String,
         extras: SubtitleRequestExtras?,
+        forceRefresh: Boolean,
     ) {
         val requests = addonSubtitleRequests(type, videoId, extras)
         if (requests.isEmpty()) {
+            _error.value = getString(Res.string.compose_player_no_compatible_subtitle_addons)
             _isLoading.value = false
             return
         }
 
         _loadingProgress.value = SubtitleLoadingProgress(total = requests.size)
-        loadAddonSubtitles(requests) { request, subtitles ->
+        loadAddonSubtitles(requests, forceRefresh = forceRefresh) { request, subtitles ->
             _addonSubtitles.update { it + subtitles }
             _loadingProgress.update { progress ->
                 progress?.copy(completed = progress.completed + 1, addonName = request.addonName)
